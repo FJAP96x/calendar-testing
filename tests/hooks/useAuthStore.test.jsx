@@ -52,98 +52,142 @@ describe('test in <useAuthStore>', () => {
     await act(async () => {
       await result.current.startLogin(testUserCredentials);
     });
+    //console.log(result.current);
 
     const { errorMessage, status, user } = result.current;
     expect({ errorMessage, status, user }).toEqual({
       errorMessage: undefined,
       status: 'authenticated',
-      user: { name: 'Test User', uid: '62a10a4954e8230e568a49ab' },
+      user: { name: 'francisco', uid: '68101794551e062e4d10ee05' },
     });
 
     expect(localStorage.getItem('token')).toEqual(expect.any(String));
     expect(localStorage.getItem('token-init-date')).toEqual(expect.any(String));
-
   });
-});
+  //
 
-test('should be fail authentication ', async () => {
-  const mockStore = getMockStore({ ...notAuthenticatedState });
-  const { result } = renderHook(() => useAuthStore(), {
-    wrapper: ({ children }) => (
-      <Provider store={mockStore}>{children}</Provider>
-    ),
-  });
-  await act(async () => {
-    await result.current.startLogin({
-      email: 'test@example.com',
-      password: 'wrongpassword',
+  test('should be fail authentication ', async () => {
+    const mockStore = getMockStore({ ...notAuthenticatedState });
+    const { result } = renderHook(() => useAuthStore(), {
+      wrapper: ({ children }) => (
+        <Provider store={mockStore}>{children}</Provider>
+      ),
+    });
+    await act(async () => {
+      await result.current.startLogin({
+        email: 'test@example.com',
+        password: 'wrongpassword',
+      });
+    });
+    const { errorMessage, status, user } = result.current;
+    expect(localStorage.getItem('token')).toBeNull();
+    expect({ errorMessage, status, user }).toEqual({
+      errorMessage: 'Credenciales incorrectas',
+      status: 'not-authenticated',
+      user: {},
+    });
+    await waitFor(() => {
+      expect(result.current.errorMessage).toBe(undefined);
     });
   });
-  const { errorMessage, status, user } = result.current;
-  expect(localStorage.getItem('token')).toBeNull();
-  expect({ errorMessage, status, user }).toEqual({
-    errorMessage: 'Credenciales incorrectas',
-    status: 'not-authenticated',
-    user: {},
-  });
-  await waitFor(() => {
-    expect(result.current.errorMessage).toBe(undefined);
-  });
-});
 
-test('startRegister should create a user', async () => {
-  const newUser = {
-    email: 'test@example.com',
-    password: '123456789',
-    name: 'Test User',
-  };
-  const mockStore = getMockStore({ ...notAuthenticatedState });
-  const { result } = renderHook(() => useAuthStore(), {
-    wrapper: ({ children }) => (
-      <Provider store={mockStore}>{children}</Provider>
-    ),
-  });
+  test('startRegister should create a user', async () => {
+    const newUser = {
+      email: 'test@example.com',
+      password: '123456789',
+      name: 'Test User',
+    };
+    const mockStore = getMockStore({ ...notAuthenticatedState });
+    const { result } = renderHook(() => useAuthStore(), {
+      wrapper: ({ children }) => (
+        <Provider store={mockStore}>{children}</Provider>
+      ),
+    });
 
-  const spy = vi.spyOn(calendarApi, 'post').mockReturnValue({
-    data: {
-      ok: true,
-      uid: '123456789',
-      name: 'test-user',
-      token: 'algun token',
-    },
-  });
-  await act(async () => {
-    await result.current.startRegister(newUser);
-  });
-  const { errorMessage, status, user } = result.current;
-  expect({ errorMessage, status, user }).toEqual({
-    errorMessage: undefined,
-    status: 'authenticated',
-    user: { name: 'test-user', uid: '123456789' },
-  });
-  // cancelar el proceso del spy
-  spy.mockRestore();
-});
-
-test('startRegister should be failed the Register', async () => {
-  const { data } = await calendarApi.post('/auth', testUserCredentials);
-  localStorage.setItem('token', data.token);
-
-  const mockStore = getMockStore({ ...initialState });
-  const { result } = renderHook(() => useAuthStore(), {
-    wrapper: ({ children }) => (
-      <Provider store={mockStore}>{children}</Provider>
-    ),
+    const spy = vi.spyOn(calendarApi, 'post').mockReturnValue({
+      data: {
+        ok: true,
+        uid: '123456789',
+        name: 'test-user',
+        token: 'algun token',
+      },
+    });
+    await act(async () => {
+      await result.current.startRegister(newUser);
+    });
+    const { errorMessage, status, user } = result.current;
+    expect({ errorMessage, status, user }).toEqual({
+      errorMessage: undefined,
+      status: 'authenticated',
+      user: { name: 'test-user', uid: '123456789' },
+    });
+    // cancelar el proceso del spy
+    spy.mockRestore();
   });
 
-  await act(async () => {
-    await result.current.checkAuthToken();
+  test('startRegister should be failed the Register', async () => {
+    const { data } = await calendarApi.post('/auth', testUserCredentials);
+    localStorage.setItem('token', data.token);
+
+    const mockStore = getMockStore({ ...initialState });
+    const { result } = renderHook(() => useAuthStore(), {
+      wrapper: ({ children }) => (
+        <Provider store={mockStore}>{children}</Provider>
+      ),
+    });
+
+    await act(async () => {
+      await result.current.checkAuthToken();
+    });
+
+    const { errorMessage, status, user } = result.current;
+    expect({ errorMessage, status, user }).toEqual({
+      errorMessage: undefined,
+      status: 'authenticated',
+      user: { name: 'francisco', uid: '68101794551e062e4d10ee05' },
+    });
   });
 
-  const { errorMessage, status, user } = result.current;
-  expect({ errorMessage, status, user }).toEqual({
-    errorMessage: undefined,
-    status: 'authenticated',
-    user: { name: 'frank', uid: '34243244k4234mkfm32' },
+  test('checkAuthToken should fail if there is no token', async () => {
+    const mockStore = getMockStore({ ...initialState });
+    const { result } = renderHook(() => useAuthStore(), {
+      wrapper: ({ children }) => (
+        <Provider store={mockStore}>{children}</Provider>
+      ),
+    });
+
+    await act(async () => {
+      await result.current.checkAuthToken();
+    });
+
+    const { errorMessage, status, user } = result.current;
+    expect({ errorMessage, status, user }).toEqual({
+      errorMessage: undefined,
+      status: 'not-authenticated',
+      user: {},
+    });
+  });
+
+  test('checkAuthToken should succeed if there is a token', async () => {
+    const { data } = await calendarApi.post('/auth', testUserCredentials);
+    localStorage.setItem('token', data.token);
+
+    const mockStore = getMockStore({ ...initialState });
+    const { result } = renderHook(() => useAuthStore(), {
+      wrapper: ({ children }) => (
+        <Provider store={mockStore}>{children}</Provider>
+      ),
+    });
+
+    await act(async () => {
+      await result.current.checkAuthToken();
+    });
+
+    const { errorMessage, status, user } = result.current;
+    expect({ errorMessage, status, user }).toEqual({
+      errorMessage: undefined,
+      status: 'authenticated',
+      user: { name: 'francisco', uid: '68101794551e062e4d10ee05' },
+    });
   });
 });
