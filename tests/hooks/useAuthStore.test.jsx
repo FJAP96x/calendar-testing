@@ -125,11 +125,10 @@ describe('test in <useAuthStore>', () => {
     spy.mockRestore();
   });
 
-  test('startRegister should be failed the Register', async () => {
-    const { data } = await calendarApi.post('/auth', testUserCredentials);
-    localStorage.setItem('token', data.token);
+  //!dudas con este test
 
-    const mockStore = getMockStore({ ...initialState });
+  test('startRegister should be failed the Register', async () => {
+    const mockStore = getMockStore({ ...notAuthenticatedState });
     const { result } = renderHook(() => useAuthStore(), {
       wrapper: ({ children }) => (
         <Provider store={mockStore}>{children}</Provider>
@@ -137,14 +136,15 @@ describe('test in <useAuthStore>', () => {
     });
 
     await act(async () => {
-      await result.current.checkAuthToken();
+      await result.current.startRegister(testUserCredentials);
     });
 
     const { errorMessage, status, user } = result.current;
+
     expect({ errorMessage, status, user }).toEqual({
-      errorMessage: undefined,
-      status: 'authenticated',
-      user: { name: 'francisco', uid: '68101794551e062e4d10ee05' },
+      errorMessage: 'El usuario ya existe',
+      status: 'not-authenticated',
+      user: {},
     });
   });
 
